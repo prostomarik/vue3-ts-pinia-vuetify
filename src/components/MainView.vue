@@ -10,17 +10,19 @@
       <div>Для указания нескольких меток для одной пары логин/пароль используйте разделитель ;</div>
     </div>
 
-    <div v-if="!accounts.length" class="d-flex justify-center">Учетных записей не существует</div>
+    <div v-if="!store.accounts.length" class="d-flex justify-center">
+      Учетных записей не существует
+    </div>
     <div v-else class="main-view__labels">
       <div>Метки</div>
       <div>Тип записи</div>
-      <div>Логин</div>
-      <div v-if="accounts.some((a) => a.type === 'local')">Пароль</div>
+      <div :style="!store.anyLocalAccountsExists ? { width: '50%' } : {}">Логин</div>
+      <div v-if="store.anyLocalAccountsExists" style="width: calc(25% - 10px)">Пароль</div>
     </div>
 
     <div class="main-view__accounts">
-      <div v-for="account in accounts" :key="account.id" class="main-view__account">
-        <v-text-field label="Значение" variant="outlined" hide-details>
+      <div v-for="account in store.accounts" :key="account.id" class="main-view__account">
+        <v-text-field label="Значение" variant="outlined" width="25%" hide-details>
           {{ account.label }}
         </v-text-field>
 
@@ -29,14 +31,26 @@
           :items="accountTypes"
           label="Значение"
           variant="outlined"
+          width="25%"
           hide-details
         />
 
-        <v-text-field label="Значение" variant="outlined" hide-details>
+        <v-text-field
+          :width="account.type === 'local' ? '25%' : '50%'"
+          label="Значение"
+          variant="outlined"
+          hide-details
+        >
           {{ account.login }}
         </v-text-field>
 
-        <v-text-field v-if="account.type === 'local'" variant="outlined" hide-details>
+        <v-text-field
+          v-if="account.type === 'local'"
+          width="calc(25% - 10px)"
+          label="Значение"
+          variant="outlined"
+          hide-details
+        >
           {{ account.password }}
         </v-text-field>
 
@@ -52,9 +66,16 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { useStore } from '@/stores/mainStore.ts'
 
-const accountTypes = [
+const store = useStore()
+
+interface AccountType {
+  title: string
+  value: string
+}
+
+const accountTypes: AccountType[] = [
   {
     title: 'LDAP',
     value: 'ldap',
@@ -65,18 +86,8 @@ const accountTypes = [
   },
 ]
 
-interface Account {
-  id: number
-  label: string
-  type: string
-  login: string
-  password: string | null
-}
-
-const accounts = ref<Account[]>([])
-
 function addAccount() {
-  accounts.value.push({
+  store.addAccount({
     id: Date.now(),
     label: '',
     type: 'ldap',
@@ -86,7 +97,7 @@ function addAccount() {
 }
 
 function deleteAccount(id: number) {
-  accounts.value = accounts.value.filter((a) => a.id !== id)
+  store.deleteAccount(id)
 }
 </script>
 
@@ -118,10 +129,13 @@ function deleteAccount(id: number) {
   display: flex;
   flex-direction: row;
   align-items: center;
-  justify-content: space-around;
   gap: 10px;
   width: calc(100% - 58px);
   margin-bottom: 10px;
+}
+
+.main-view__labels div {
+  width: 25%;
 }
 
 .main-view__accounts {
