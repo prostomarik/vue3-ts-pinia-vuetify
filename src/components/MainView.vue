@@ -28,16 +28,16 @@
         class="main-view__account"
       >
         <v-text-field
-          v-model="account.label"
+          :modelValue="parseArray(account.label)"
           :rules="[validatorRules.label(account)]"
           label="Значение"
           variant="outlined"
           width="25%"
-          @change="updateAccount(account)"
+          @change="parseString(account, $event.target.value)"
         />
 
         <v-select
-          v-model="account.type"
+          :modelValue="account.type"
           :items="accountTypes"
           variant="outlined"
           width="25%"
@@ -57,9 +57,12 @@
           v-if="account.type === 'local'"
           v-model="account.password"
           :rules="[validatorRules.password(account)]"
+          :type="showPasswords ? 'text' : 'password'"
+          :append-inner-icon="showPasswords ? 'mdi-eye' : 'mdi-eye-off'"
           width="calc(25% - 10px)"
           label="Значение"
           variant="outlined"
+          @click:append-inner="showPasswords = !showPasswords"
           @change="updateAccount(account)"
         />
 
@@ -74,8 +77,9 @@ import { type Ref, ref } from 'vue'
 
 import { useStore } from '@/stores/mainStore.ts'
 
-import type { AccountType } from '@/interfaces'
+import type { AccountLabel, AccountType } from '@/interfaces'
 import type { Account } from '@/interfaces'
+import type { Refs } from '@/interfaces'
 
 const store = useStore()
 
@@ -102,6 +106,9 @@ const validatorRules = {
       : 'Это поле обязательное',
 }
 
+const showPasswords: Ref<boolean> = ref(false)
+const refs: Ref<Refs> = ref({})
+
 function addAccount() {
   store.addAccount({
     id: Date.now(),
@@ -112,27 +119,38 @@ function addAccount() {
   })
 }
 
+async function updateAccount(account: Account) {
+  const { valid } = await refs.value[account.id].validate()
+  if (valid) {
+    store.updateAccount(account)
+  }
+}
+
 function deleteAccount(id: number) {
   store.deleteAccount(id)
 }
 
-interface Refs {
-  [id: number]: {
-    validate: () => Promise<{
-      valid: boolean
-      errors: { id: string | number; errorMessages: string[] }[]
-    }>
-  }
+function parseArray(label: string | AccountLabel[]) {
+  return typeof label !== 'string'
+    ? label.reduce((string: string, { text }: { text: string }) => {
+        string += `${text}; `
+        return string
+      }, '')
+    : ''
 }
 
-const refs: Ref<Refs> = ref({})
+function parseString(account: Account, value: string) {
+  account.label = value.split(';').reduce((arr: AccountLabel[], text: string) => {
+    text = text.trim()
 
-function updateAccount(account: Account) {
-  refs.value[account.id].validate().then(({ valid }) => {
-    if (valid) {
-      store.updateAccount(account)
+    if (text) {
+      arr.push({ text })
     }
-  })
+
+    return arr
+  }, [])
+
+  updateAccount(account)
 }
 </script>
 
