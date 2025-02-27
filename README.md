@@ -1,4 +1,4 @@
-# ss-test-task
+# vue3-ts-pinia-vuetify
 
 This template should help get you started developing with Vue 3 in Vite.
 
