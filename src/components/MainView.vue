@@ -21,59 +21,63 @@
     </div>
 
     <div class="main-view__accounts">
-      <div v-for="account in store.accounts" :key="account.id" class="main-view__account">
-        <v-text-field label="Значение" variant="outlined" width="25%" hide-details>
-          {{ account.label }}
-        </v-text-field>
+      <v-form
+        v-for="account in store.accounts"
+        :key="account.id"
+        :ref="(el) => (refs[account.id] = el)"
+        class="main-view__account"
+      >
+        <v-text-field
+          v-model="account.label"
+          :rules="[validatorRules.label(account)]"
+          label="Значение"
+          variant="outlined"
+          width="25%"
+          @change="updateAccount(account)"
+        />
 
         <v-select
           v-model="account.type"
           :items="accountTypes"
-          label="Значение"
           variant="outlined"
           width="25%"
-          hide-details
+          @update:modelValue="updateAccount(account)"
         />
 
         <v-text-field
+          v-model="account.login"
           :width="account.type === 'local' ? '25%' : '50%'"
+          :rules="[validatorRules.login(account)]"
           label="Значение"
           variant="outlined"
-          hide-details
-        >
-          {{ account.login }}
-        </v-text-field>
+          @change="updateAccount(account)"
+        />
 
         <v-text-field
           v-if="account.type === 'local'"
+          v-model="account.password"
+          :rules="[validatorRules.password(account)]"
           width="calc(25% - 10px)"
           label="Значение"
           variant="outlined"
-          hide-details
-        >
-          {{ account.password }}
-        </v-text-field>
-
-        <v-btn
-          icon="mdi-delete-outline"
-          variant="text"
-          hide-details
-          @click="deleteAccount(account.id)"
+          @change="updateAccount(account)"
         />
-      </div>
+
+        <v-btn icon="mdi-delete-outline" variant="text" @click="deleteAccount(account.id)" />
+      </v-form>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import { type Ref, ref } from 'vue'
+
 import { useStore } from '@/stores/mainStore.ts'
 
-const store = useStore()
+import type { AccountType } from '@/interfaces'
+import type { Account } from '@/interfaces'
 
-interface AccountType {
-  title: string
-  value: string
-}
+const store = useStore()
 
 const accountTypes: AccountType[] = [
   {
@@ -85,6 +89,18 @@ const accountTypes: AccountType[] = [
     value: 'local',
   },
 ]
+
+const validatorRules = {
+  label: (account: Account) => account.label.length < 50 || 'Максимум 50 символов',
+  login: (account: Account) =>
+    !!account.login.length
+      ? account.login.length < 100 || 'Максимум 100 символов'
+      : 'Это поле обязательное',
+  password: (account: Account) =>
+    !!account.password?.length
+      ? account.password.length < 100 || 'Максимум 100 символов'
+      : 'Это поле обязательное',
+}
 
 function addAccount() {
   store.addAccount({
@@ -98,6 +114,25 @@ function addAccount() {
 
 function deleteAccount(id: number) {
   store.deleteAccount(id)
+}
+
+interface Refs {
+  [id: number]: {
+    validate: () => Promise<{
+      valid: boolean
+      errors: { id: string | number; errorMessages: string[] }[]
+    }>
+  }
+}
+
+const refs: Ref<Refs> = ref({})
+
+function updateAccount(account: Account) {
+  refs.value[account.id].validate().then(({ valid }) => {
+    if (valid) {
+      store.updateAccount(account)
+    }
+  })
 }
 </script>
 
@@ -147,7 +182,6 @@ function deleteAccount(id: number) {
 .main-view__account {
   display: flex;
   flex-direction: row;
-  align-items: center;
   gap: 10px;
 }
 </style>

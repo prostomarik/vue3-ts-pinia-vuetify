@@ -2,15 +2,9 @@ import { computed, type Ref, ref } from 'vue'
 
 import { defineStore } from 'pinia'
 
-const ACCOUNTS_LOCAL_STORAGE_KEY = 'accounts'
+import type { Account } from '@/interfaces'
 
-interface Account {
-  id: number
-  label: string
-  type: string
-  login: string
-  password: string | null
-}
+const ACCOUNTS_LOCAL_STORAGE_KEY = 'accounts'
 
 export const useStore = defineStore('store', () => {
   function getAccounts() {
@@ -33,10 +27,19 @@ export const useStore = defineStore('store', () => {
     saveAccounts()
   }
 
+  function updateAccount(account: Account) {
+    if (account.type === 'ldap') {
+      account.password = null
+    }
+
+    accounts.value[accounts.value.findIndex((a) => a.id === account.id)] = account
+    saveAccounts()
+  }
+
   function deleteAccount(id: number) {
     accounts.value = accounts.value.filter((a) => a.id !== id)
     saveAccounts()
   }
 
-  return { accounts, anyLocalAccountsExists, addAccount, deleteAccount }
+  return { accounts, anyLocalAccountsExists, addAccount, updateAccount, deleteAccount }
 })
