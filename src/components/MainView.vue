@@ -37,7 +37,7 @@
         />
 
         <v-select
-          :modelValue="account.type"
+          v-model="account.type"
           :items="accountTypes"
           variant="outlined"
           width="25%"

@@ -28,6 +28,8 @@ export const useStore = defineStore('store', () => {
   }
 
   function updateAccount(account: Account) {
+    console.log(account)
+
     if (account.type === 'ldap') {
       account.password = null
     }
